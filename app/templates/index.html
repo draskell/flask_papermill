@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Hi, {{ user.username }}!</h1>
+{% for temp in jupyter_templates %}
+<div>
+    <p><b> {{ temp.name }}: </b>{{ temp.description }}</p>
+</div>
+{% endfor %}
+{% endblock %}

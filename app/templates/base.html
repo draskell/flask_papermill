@@ -1,0 +1,29 @@
+<html>
+
+<head>
+    {% if title %}
+    <title>{{ title }} - Jupyter Templates</title>
+    {% else %}
+    <title>Welcome to Jupyter Templates</title>
+    {% endif %}
+</head>
+
+<body>
+    <div>Jupyter Templates:
+        <a href="/index">Home</a>
+        <a href="/login">Login</a>
+    </div>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</body>
+
+</html>
