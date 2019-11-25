@@ -1,12 +1,16 @@
 from datetime import datetime
 import json
+from hashlib import md5
 
 import jsonpickle
 import sqlalchemy
 from sqlalchemy import String
 from sqlalchemy.ext.mutable import Mutable
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 from app import db
+from app import login
 
 
 class JSONEncodedObj(sqlalchemy.types.TypeDecorator):
@@ -86,7 +90,9 @@ class MutationObj(Mutable):
 class MutationDict(MutationObj, dict):
     @classmethod
     def coerce(cls, key, value):
-        """Convert plain dictionary to MutationDict"""
+        """
+        Convert plain dictionary to MutationDict.
+        """
         self = MutationDict((k, MutationObj.coerce(key, v)) for (k, v) in value.items())
         self._key = key
         return self
@@ -149,9 +155,11 @@ class MutationList(MutationObj, list):
 
 
 def JSONAlchemy(sqltype):
-    """A type to encode/decode JSON on the fly
+    """
+    A type to encode/decode JSON on the fly
 
-    sqltype is the string type for the underlying DB column.
+    sqltype : string
+        The string type for the underlying DB column.
 
     You can use it like:
     Column(JSONAlchemy(Text(600)))
@@ -163,24 +171,69 @@ def JSONAlchemy(sqltype):
     return MutationObj.as_mutable(_JSONEncodedObj)
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
+    """
+    User model.
+    """
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
+    about_me = db.Column(db.String(140))
+    # TODO: we're putting the datetime into the last seen
+    # atribute as UTC, we need a write a function to convert
+    # the datetime to the timezone and human readable when
+    # format before sending back to the frontent.
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def avatar(self, size):
+        digest = md5(self.email.lower().encode("utf-8")).hexdigest()
+        return "https://www.gravatar.com/avatar/{}?d=identicon&s={}".format(
+            digest, size
+        )
 
     def __repr__(self):
         return "<User {}>".format(self.username)
 
 
+class ScriptType(enum.Enum):
+    QA = "Quality Assurance Script"
+    TASK = "Task Script"
+    REPORT = "Reporting Script"
+
+
 class JupyterNotebook(db.Model):
+    """
+    Model for jupyter notebook objects.
+    """
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), index=True, unique=True)
+    script_type = db.Column(db.Enum(ScriptType))
     path = db.Column(db.String(1024))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     parameters = db.Column(JSONAlchemy(db.Text(1024)))
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    author = db.Column(db.Integer, db.ForeignKey("user.id"))
 
     def __repr__(self):
         return f"<Jupyter Notebook: '{self.name}' from {self.timestamp}>"
 
+
+@login.user_loader
+def load_user(id):
+    """
+    User loader for use by flask_login.
+    """
+    return User.query.get(int(id))
+
+
+# TODO: Add a DB model for notebook papermill runs which stores
+# which notebooks were run, when, by whom, and where the results
+# are which can be shown to the user on the user page.
