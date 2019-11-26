@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Upload a Jupyter Notebook</h1>
+<form action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.script_type.label }}<br>
+        {{ form.script_type }}<br>
+        {% for error in form.script_type.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>{{ form.notebook() }}</p>
+    {% for error in form.notebook.errors %}
+    <span style="color: red;">[{{ error }}]</span>
+    {% endfor %}
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

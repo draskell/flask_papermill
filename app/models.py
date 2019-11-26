@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 from hashlib import md5
+import enum
 
 import jsonpickle
 import sqlalchemy

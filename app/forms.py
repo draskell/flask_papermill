@@ -1,10 +1,29 @@
 import os
+import re
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
+from flask_wtf.file import FileAllowed
+from wtforms import (
+    StringField,
+    PasswordField,
+    BooleanField,
+    SubmitField,
+    TextAreaField,
+    SelectField,
+    FileField,
+)
 
-from app.models import User
+from wtforms.validators import (
+    ValidationError,
+    DataRequired,
+    Email,
+    EqualTo,
+    Length,
+    regexp,
+)
+from werkzeug import secure_filename
+
+from app.models import User, ScriptType
 
 
 class LoginForm(FlaskForm):
@@ -56,3 +75,11 @@ class EditProfileForm(FlaskForm):
             if user is not None:
                 raise ValidationError("Invalid username.")
 
+
+class UploadForm(FlaskForm):
+    script_type = SelectField(
+        "Form Type",
+        choices=[("QA", "Quality Assurance"), ("T", "Task"), ("R", "Report")],
+    )
+    notebook = FileField("Notebook File", validators=[FileAllowed(["ipynb"])])
+    submit = SubmitField("Submit")
