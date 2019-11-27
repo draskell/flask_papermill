@@ -8,6 +8,7 @@ from sqlalchemy import String
 from sqlalchemy.ext.mutable import Mutable
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+import papermill as pm
 
 from app import db
 from app import login
@@ -217,13 +218,26 @@ class JupyterNotebook(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), index=True, unique=True)
     script_type = db.Column(db.Enum(ScriptType))
-    path = db.Column(db.String(1024))
+    path = db.Column(db.String(1024), unique=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     parameters = db.Column(JSONAlchemy(db.Text(1024)))
     author = db.Column(db.Integer, db.ForeignKey("user.id"))
 
     def __repr__(self):
         return f"<Jupyter Notebook: '{self.name}' from {self.timestamp}>"
+
+    def papermill(self, output_path):
+        run = PapermillRun(
+            notebook=self.id, triggered_by=current_user.id, output_path=output_path,
+        )
+        try:
+            pm.execute_notebook(self.path, output_path, parameters=self.parameters)
+            run.ran_successfully = True
+        except:
+            run.ran_successfully = True
+        finally:
+            db.session.add(run)
+            db.session.commit()
 
 
 @login.user_loader
@@ -234,6 +248,15 @@ def load_user(id):
     return User.query.get(int(id))
 
 
-# TODO: Add a DB model for notebook papermill runs which stores
-# which notebooks were run, when, by whom, and where the results
-# are which can be shown to the user on the user page.
+class PapermillRun(db.Model):
+    """
+    Model to store runs of notebooks using Papermill.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+    notebook = db.Column(db.Integer, db.ForeignKey("jupyternotebook.id"), index=True)
+    triggered_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    output_path = db.Column(db.String(1024), unique=True)
+    ran_successfully = db.Column(db.Boolean)
+    # TODO: do I want to store a trigger type (sheduled or manual?)
