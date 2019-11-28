@@ -4,10 +4,11 @@ from flask import request
 from flask import render_template, flash, redirect, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.urls import url_parse
+from werkzeug import secure_filename
 
-from app.models import User
+from app.models import User, JupyterNotebook
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, UploadForm
 
 
 @app.before_request
@@ -135,4 +136,23 @@ def edit_profile():
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
     return render_template("edit_profile.html", title="Edit Profile", form=form)
+
+
+@app.route("/upload", methods=["GET", "POST"])
+@login_required
+def upload():
+    form = UploadForm()
+
+    if form.validate_on_submit():
+        filename = secure_filename(form.notebook.data.filename)
+        notebook = JupyterNotebook(
+            name=filename.rsplit(".")[0],
+            script_type=form.script_type.data,
+            author=current_user.id,
+        )
+        db.session.add(notebook)
+        db.session.commit()
+        form.notebook.data.save("notebooks/" + filename)
+        return redirect(url_for("upload"))
+    return render_template("upload.html", title="Notebook Upload", form=form)
 
