@@ -1,8 +1,14 @@
 from app import app, db
-from app.models import User, JupyterNotebook
+from app.models import User, ScriptType, JupyterNotebook, PapermillRun
 
 
 @app.shell_context_processor
 def make_shell_context():
-    return {"db": db, "User": User, "Post": JupyterNotebook}
+    return {
+        "db": db,
+        "User": User,
+        "JupyterNotebook": JupyterNotebook,
+        "PapermillRun": PapermillRun,
+        "ScriptType": ScriptType,
+    }
 
