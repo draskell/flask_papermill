@@ -15,6 +15,13 @@
     {% for error in form.notebook.errors %}
     <span style="color: red;">[{{ error }}]</span>
     {% endfor %}
+    <p>
+        {{ form.parameters.label }}<br>
+        {{ form.parameters }}<br>
+        {% for error in form.parameters.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
     <p>{{ form.submit() }}</p>
 </form>
 {% endblock %}

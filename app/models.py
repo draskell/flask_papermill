@@ -207,8 +207,8 @@ class User(UserMixin, db.Model):
 
 class ScriptType(enum.Enum):
     QA = "Quality Assurance Script"
-    TASK = "Task Script"
-    REPORT = "Reporting Script"
+    T = "Task Script"
+    R = "Reporting Script"
 
 
 class JupyterNotebook(db.Model):
@@ -221,21 +221,27 @@ class JupyterNotebook(db.Model):
     script_type = db.Column(db.Enum(ScriptType))
     path = db.Column(db.String(1024), unique=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    # TODO: this doesn't load as a dict when you query the object.
     parameters = db.Column(JSONAlchemy(db.Text(1024)))
     author = db.Column(db.Integer, db.ForeignKey("user.id"))
 
     def __repr__(self):
         return f"<Jupyter Notebook: '{self.name}' from {self.timestamp}>"
 
-    def papermill(self, output_path):
+    def papermill(self, user, output_path):
         run = PapermillRun(
-            notebook=self.id, triggered_by=current_user.id, output_path=output_path,
+            # notebook=self.id, triggered_by=current_user.id, output_path=output_path,
+            notebook=self.id,
+            triggered_by=user.id,
+            output_path=output_path,
         )
         try:
-            pm.execute_notebook(self.path, output_path, parameters=self.parameters)
+            pm.execute_notebook(
+                self.path, output_path, parameters=json.loads(self.parameters)
+            )
             run.ran_successfully = True
         except:
-            run.ran_successfully = True
+            run.ran_successfully = False
         finally:
             db.session.add(run)
             db.session.commit()
@@ -255,9 +261,11 @@ class PapermillRun(db.Model):
     """
 
     id = db.Column(db.Integer, primary_key=True)
-    notebook = db.Column(db.Integer, db.ForeignKey("jupyternotebook.id"), index=True)
+    notebook = db.Column(db.Integer, db.ForeignKey("jupyter_notebook.id"), index=True)
     triggered_by = db.Column(db.Integer, db.ForeignKey("user.id"))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     output_path = db.Column(db.String(1024), unique=True)
+    # Might want to make this the output of the fun command for
+    # better debugging.
     ran_successfully = db.Column(db.Boolean)
     # TODO: do I want to store a trigger type (sheduled or manual?)

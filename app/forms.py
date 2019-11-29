@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
@@ -82,4 +83,16 @@ class UploadForm(FlaskForm):
         choices=[("QA", "Quality Assurance"), ("T", "Task"), ("R", "Report")],
     )
     notebook = FileField("Notebook File", validators=[FileAllowed(["ipynb"])])
+    parameters = TextAreaField("Parameter JSON", validators=[Length(min=0, max=1024)])
     submit = SubmitField("Submit")
+
+    def validate_parameters(self, parameters):
+        # It's OP for there to be no data, not all notebooks have
+        # parameters.
+        if len(parameters.data) == 0:
+            return
+
+        try:
+            ps = json.loads(parameters.data)
+        except json.decoder.JSONDecodeError as e:
+            raise Exception("Parameters field is not valid JSON. {}".format(e))

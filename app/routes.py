@@ -148,11 +148,13 @@ def upload():
         notebook = JupyterNotebook(
             name=filename.rsplit(".")[0],
             script_type=form.script_type.data,
+            path="notebooks/" + filename,
+            parameters=form.parameters.data,
             author=current_user.id,
         )
         db.session.add(notebook)
         db.session.commit()
-        form.notebook.data.save("notebooks/" + filename)
+        form.notebook.data.save(notebook.path)
         return redirect(url_for("upload"))
     return render_template("upload.html", title="Notebook Upload", form=form)
 

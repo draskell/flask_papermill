@@ -24,10 +24,15 @@ These credentials are used by papermill to gain access to the AWS S3 bucket wher
 - __AWS_SECRET_ACCESS_KEY__: The secret key for your AWS account.
 - __AWS_PROFILE__: If you have multiple accounts configured (in `~/.aws/credentials), you can specify which account to use with this variable.
 
+### FLask
+
+- __FLASK_APP__: The location of the flask app file (should be `FLASK_APP=flask_papermill.py` for this project).
+- __FLASK_DEBUG__: Set to 0 in production, but `FLASK_DEBUG=1` is handy when debugging.
 
 ### Some feature ideas:
 
 1. S3 support to save notebook results to S3 and generate presigned urls to let AWS render the result to the user.
 2. Host or publish result notebookss with binder or commuter.
+3. Add YAML validation for notebook parameters with Bravado.
 
 Inspired by [this post](https://medium.com/netflix-techblog/scheduling-notebooks-348e6c14cfd6) and associated talks at PyCon 2019.
